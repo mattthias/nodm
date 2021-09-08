@@ -1,6 +1,6 @@
 # NOTE
 
-This is a clone of original repo.  I used in into one embedded kiosk application
+This is a clone of original spanezz/nodm repo.  I used in into one embedded kiosk application
 because of lightdm is too heavy and required much more resources.
 
 
