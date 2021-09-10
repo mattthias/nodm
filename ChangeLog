@@ -1,3 +1,8 @@
+2021-09-10 15:21:34 +0200 Yuri Ingultsov
+
+	* release 0.14 (HEAD, master)
+	  careful shutdown tracking to prevent  nodm to  restart X server & X session while  system shutdown in progress
+	
 2017-01-23 17:29:34 +0100 Mike Gabriel (1633964)
 
 	* release 0.13 (HEAD, master)
