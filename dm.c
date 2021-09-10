@@ -166,6 +166,7 @@ static int setup_quit_notification(sigset_t* origset)
         log_err("signal operations error: %m");
         return E_PROGRAMMING;
     }
+    
     return E_SUCCESS;
 }
 
@@ -175,14 +176,27 @@ static void shutdown_quit_notification(const sigset_t* origset)
         log_err("sigprocmask error: %m");
 }
 
+static int check_quit_pending_signal() {
+    sigset_t waiting_mask;
+    
+    int rc;
+    if ((rc = sigpending( &waiting_mask )) < 0) {
+        log_err("sigpending operations error: %m");
+    }
+        
+    if ( quit_signal_caught > 0
+        || sigismember( &waiting_mask, SIGTERM) 
+        || sigismember( &waiting_mask, SIGINT) 
+        || sigismember( &waiting_mask, SIGQUIT) 
+    ) {
+        return E_USER_QUIT;
+    }
+    return E_SUCCESS;
+}
+
 int nodm_display_manager_wait(struct nodm_display_manager* dm, int* session_status)
 {
     int res = E_SUCCESS;
-
-    // Catch the normal termination signals using 'catch_signals'
-    sigset_t origset;
-    res = setup_quit_notification(&origset);
-    if (res != E_SUCCESS) return res;
 
     *session_status = -1;
     while (true)
@@ -209,6 +223,12 @@ int nodm_display_manager_wait(struct nodm_display_manager* dm, int* session_stat
                 res = E_OS_ERROR;
                 goto cleanup;
             }
+        } 
+        
+        if ((res = check_quit_pending_signal()) != E_SUCCESS) {
+            log_info("shutdown signal received");
+            res = E_USER_QUIT;
+            goto cleanup;
         }
 
         if (child == dm->srv.pid)
@@ -227,7 +247,6 @@ int nodm_display_manager_wait(struct nodm_display_manager* dm, int* session_stat
     }
 
 cleanup:
-    shutdown_quit_notification(&origset);
     return res;
 }
 
@@ -324,22 +343,19 @@ static int interruptible_sleep(int seconds)
 {
     int res = E_SUCCESS;
 
-    // Catch the normal termination signals using 'catch_signals'
-    sigset_t origset;
-    res = setup_quit_notification(&origset);
-    if (res != E_SUCCESS) return res;
-
     struct timespec tosleep = { .tv_sec = seconds, .tv_nsec = 0 };
     struct timespec remaining;
     while (true)
     {
         int r = nanosleep(&tosleep, &remaining);
+        
         if (r != -1)
             break;
-        else if (errno == EINTR)
+        else if (errno == EINTR )
         {
-            if (quit_signal_caught)
+            if (  check_quit_pending_signal() )
             {
+                log_info("shutdown signal received");
                 res = E_USER_QUIT;
                 break;
             } else
@@ -352,16 +368,20 @@ static int interruptible_sleep(int seconds)
         }
     }
 
-    shutdown_quit_notification(&origset);
     return res;
 }
 
 int nodm_display_manager_wait_restart_loop(struct nodm_display_manager* dm)
 {
-    static int retry_times[] = { 0, 0, 30, 30, 60, 60, -1 };
+    static int retry_times[] = { 1, 1, 30, 30, 60, 60, -1 };
     int restart_count = 0;
     int res;
 
+    // Catch the normal termination signals using 'catch_signals'
+    sigset_t origset;
+    res = setup_quit_notification(&origset);
+    if (res != E_SUCCESS) return res;
+    
     while (1)
     {
         int sstatus;
@@ -376,7 +396,7 @@ int nodm_display_manager_wait_restart_loop(struct nodm_display_manager* dm)
             case E_SESSION_DIED:
                 break;
             default:
-                return res;
+                goto cleanup;
         }
 
         /* Check if the session was too short */
@@ -394,11 +414,22 @@ int nodm_display_manager_wait_restart_loop(struct nodm_display_manager* dm)
             log_warn("session lasted less than %d seconds: sleeping %d seconds before restarting it",
                     dm->conf_minimum_session_time, retry_times[restart_count]);
             res = interruptible_sleep(retry_times[restart_count]);
-            if (res != E_SUCCESS) return res;
+            if (res != E_SUCCESS) 
+                goto cleanup;
         }
 
+        if (check_quit_pending_signal() != E_SUCCESS) {
+            res = E_USER_QUIT;
+                goto cleanup;
+        }
+        
         log_info("restarting session");
         res = nodm_display_manager_restart(dm);
-        if (res != E_SUCCESS) return res;
+        if (res != E_SUCCESS) 
+            goto cleanup;
     }
+    
+cleanup:    
+    shutdown_quit_notification(&origset);
+    return res;
 }
