@@ -1,16 +1,1 @@
-*.o
-/.deps/
-autom4te.cache
-config.h
-config.status
-nodm.service
-Makefile
-Makefile.in
-aclocal.m4
-config.h.in
-config.log
-config/
-configure
-nodm
-nodm.8
-stamp-h1
+_build
