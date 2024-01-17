@@ -1,10 +1,4 @@
-# NOTE
-
-This is a clone of original spanezz/nodm repo.  I used in one embedded kiosk 
-application because of lightdm is too heavy and requires much more resources.
-
-
-# nodm
+# nodm - automatic display manager
 
 nodm is a minimal display manager that simply logs in as a given user and
 starts an X session, without asking for username or password.
@@ -16,6 +10,8 @@ However, there are cases where automatic login is needed: for example in an
 embedded system such as a mobile phone, or in a kiosk setup, or in a control
 panel for industrial machinery.  For those cases, nodm is simple to setup,
 lightweight, and it should do exactly the right thing.
+
+This repo is a fork of [softlab's fork](https://github.com/softlab/nodm) of the original [spanezz/nodm](https://github.com/spanezz/nodm) repo.
 
 
 ## Features
@@ -29,7 +25,7 @@ of least surprise.  This is what is offered:
  - nodm performs VT allocation, looking for a free virtual terminal in which to
    run X and keeping it allocated across X restarts.
  - X is started (by default, /usr/bin/X)
- - once the X esrver is ready to accept connections, the X session is set up:
+ - once the X server is ready to accept connections, the X session is set up:
     - the DISPLAY and WINDOWPATH environment variables are set
     - the session is wrapped in a PAM session, which sets up the user
       environment
@@ -88,3 +84,26 @@ Configuration is made via these environment variables:
  * `NODM_X_TIMEOUT`
     Timeout (in seconds) to wait for X to be ready to accept connections. If X is
     not ready before this timeout, it is killed and restarted.
+
+## Build instructions
+
+Install meson, libx11-dev, libpam-dev:
+
+        sudo apt install meson libx11-dev libpam-dev
+
+Setup build directory:
+
+        meson setup _build
+
+Compile:
+
+        cd _build
+        meson compile
+
+### Build without PAM support
+
+In rare usecases you may not want or need PAM support. In this case pam support can be disabled during build:
+
+        meson setup -Ddisable_pam=true _build
+        cd _build
+        meson compile
