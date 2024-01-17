@@ -36,7 +36,11 @@
 int nodm_xsession_init(struct nodm_xsession* s)
 {
     s->child_body = NULL;
+#ifdef NO_PAM
+    s->conf_use_pam = false;
+#else
     s->conf_use_pam = true;
+#endif
     s->conf_cleanup_xse = true;
 
     if (sigemptyset(&s->orig_signal_mask) == -1)
@@ -125,8 +129,14 @@ int nodm_xsession_start(struct nodm_xsession* s, struct nodm_xserver* srv)
         // child shell */
         if (s->child_body)
             exit(s->child_body(&child));
-        else if (s->conf_use_pam)
+        else if (s->conf_use_pam) {
+#ifdef NO_PAM
+            log_err("cannot use pam mode: not compiled in.");
+            return E_OS_ERROR;
+#else
             exit(nodm_xsession_child_pam(&child));
+#endif
+	}
         else
             exit(nodm_xsession_child(&child));
     } else if (s->pid == -1) {

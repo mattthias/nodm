@@ -69,8 +69,12 @@
 #include "xserver.h"
 #include "common.h"
 #include "log.h"
+#ifndef NO_PAM
 #include <security/pam_appl.h>
 #include <security/pam_misc.h>
+#endif
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -137,6 +141,7 @@ cleanup:
     return ret;
 }
 
+#ifndef NO_PAM
 /*
  * setup_uid_gid() split in two functions for PAM support -
  * pam_setcred() needs to be called after initgroups(), but
@@ -300,6 +305,7 @@ static void shutdown_pam(struct nodm_xsession_child* s)
     pam_end(s->pamh, s->pam_status);
     s->pamh = 0;
 }
+#endif
 
 int nodm_xsession_child_common_env(struct nodm_xsession_child* s)
 {
@@ -370,6 +376,7 @@ int nodm_xsession_child(struct nodm_xsession_child* s)
     exit(errno == ENOENT ? E_CMD_NOTFOUND : E_CMD_NOEXEC);
 }
 
+#ifndef NO_PAM
 /* Signal handler for parent process later */
 static int caught = 0;
 static void catch_signals (int sig)
@@ -498,3 +505,4 @@ killed:
 
     return E_SESSION_DIED;
 }
+#endif

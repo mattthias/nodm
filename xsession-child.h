@@ -23,7 +23,9 @@
 
 #include <stdbool.h>
 #include <pwd.h>
+#ifndef NO_PAM
 #include <security/pam_appl.h>
+#endif
 
 struct nodm_xserver;
 
@@ -38,11 +40,13 @@ struct nodm_xsession_child
     /// Information about the user we run the session for
     struct passwd pwent;
 
+#ifndef NO_PAM
     /// PAM session handle (or NULL if not used)
     pam_handle_t *pamh;
 
     /// Return code of the last PAM function called
     int pam_status;
+#endif
 
     /// Command line to run
     const char** argv;

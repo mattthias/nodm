@@ -1,0 +1,1 @@
+option('disable_pam', type : 'boolean', value : false, description: 'Setting this option removes PAM support from nodm')
